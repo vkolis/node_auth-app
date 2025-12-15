@@ -10,7 +10,7 @@
     "lint": "npm run format && mate-scripts lint",
     "format": "prettier --ignore-path .prettierignore --write './src/**/*.{js,ts}'",
     "test:only": "mate-scripts test",
-    "update": "mate-scripts update",
+    "update": "mate-scripts update && node scripts/fix-eslint-config.cjs",
     "postinstall": "npm run update",
     "test": "npm run lint && npm run test:only"
   },
