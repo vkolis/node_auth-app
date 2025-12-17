@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { notFound } from './middlewares/notFound.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 export const app = express();
 
@@ -11,3 +13,6 @@ app.use(cookieParser());
 app.get('/health', (req, res) => {
   res.status(200).send('Server is running');
 });
+
+app.use(notFound);
+app.use(errorHandler);
