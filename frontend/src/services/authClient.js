@@ -172,7 +172,7 @@ async function resetPassword({ token, password }) {
   if (!useMock) {
     const { data } = await api.post('/auth/reset/confirm', {
       token,
-      password,
+      newPassword: password,
     });
 
     return data;
