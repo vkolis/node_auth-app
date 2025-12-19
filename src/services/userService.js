@@ -59,3 +59,42 @@ export const activateUser = async (token) => {
 
   return publicUser(user);
 };
+
+export const loginUser = async ({ email, password }) => {
+  const normalizedEmail = email.toLowerCase();
+  const user = await User.findOne({ where: { email: normalizedEmail } });
+
+  if (!user) {
+    throw badRequest('Invalid email or password');
+  }
+
+  const isValid = await bcrypt.compare(password, user.passwordHash);
+
+  if (!isValid) {
+    throw badRequest('Invalid email or password');
+  }
+
+  if (!user.active) {
+    return {
+      needsActivation: true,
+      user: publicUser(user),
+    };
+  }
+
+  return {
+    user: publicUser(user),
+  };
+};
+
+export const findUserById = async (id) => {
+  const user = await User.findByPk(id);
+
+  if (!user) {
+    const error = new Error('User not found');
+
+    error.status = 404;
+    throw error;
+  }
+
+  return publicUser(user);
+};
