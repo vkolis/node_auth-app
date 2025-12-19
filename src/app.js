@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { notFound } from './middlewares/notFound.js';
@@ -14,44 +13,25 @@ import {
   registerUser,
   requestPasswordReset,
   resetPassword,
+  updateProfile,
 } from './services/userService.js';
 import { auth } from './middlewares/auth.js';
 import {
   sendActivationEmail,
   sendResetEmail,
 } from './services/emailService.js';
+import {
+  activateSchema,
+  changePasswordSchema,
+  changeProfileSchema,
+  loginSchema,
+  registerSchema,
+  resetConfirmSchema,
+  resetRequestSchema,
+} from './zod/zodSchemas.js';
 
 dotenv.config();
 export const app = express();
-
-const activateSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-});
-
-const registerSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
-  email: z.string().email('Valid email is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
-const loginSchema = z.object({
-  email: z.string().email('Valid email is required'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-const resetRequestSchema = z.object({
-  email: z.string().email('Valid email is required'),
-});
-
-const resetConfirmSchema = z.object({
-  token: z.string().min(1, 'Token is required'),
-  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
-const changePasswordSchema = z.object({
-  oldPassword: z.string().min(1, 'Old password is required'),
-  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-});
 
 app.use(express.json());
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
@@ -174,6 +154,18 @@ app.post('/auth/password', auth, async (req, res, next) => {
 
     await changePassword({ userId: req.user.userId, oldPassword, newPassword });
     res.json({ message: 'Пароль змінено' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch('/auth/profile', auth, async (req, res, next) => {
+  try {
+    const { name } = changeProfileSchema.parse(req.body);
+
+    const user = await updateProfile({ userId: req.user.userId, name });
+
+    res.json({ message: 'Профіль оновлено', user });
   } catch (error) {
     next(error);
   }

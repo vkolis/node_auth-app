@@ -151,9 +151,25 @@ export const changePassword = async ({ userId, oldPassword, newPassword }) => {
   const isValid = await bcrypt.compare(oldPassword, user.passwordHash);
 
   if (!isValid) {
-    throw badRequest('Старий пароль невірний');
+    throw badRequest('Old password does not match');
   }
 
   user.passwordHash = await bcrypt.hash(newPassword, 10);
   await user.save();
+};
+
+export const updateProfile = async ({ userId, name }) => {
+  const user = await User.findByPk(userId);
+
+  if (!user) {
+    const error = new Error('User not found');
+
+    error.status = 404;
+    throw error;
+  }
+
+  user.name = name.trim();
+  await user.save();
+
+  return publicUser(user);
 };

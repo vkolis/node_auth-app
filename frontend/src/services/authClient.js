@@ -111,9 +111,19 @@ async function login(payload) {
   });
 }
 
-async function logout() {
+async function logout(token) {
   if (!useMock) {
-    await api.post('/auth/logout');
+    await api.post(
+      '/auth/logout',
+      {},
+      {
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      },
+    );
   }
 }
 
