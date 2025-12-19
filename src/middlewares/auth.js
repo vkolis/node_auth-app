@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const auth = (req, res, next) => {
-  const authHeader = req.get('authorization');
+  const authHeader = req.get('authorization') || req.get('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Unauthorized' });

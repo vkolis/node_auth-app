@@ -11,6 +11,8 @@ import {
   findUserById,
   loginUser,
   registerUser,
+  requestPasswordReset,
+  resetPassword,
 } from './services/userService.js';
 import { auth } from './middlewares/auth.js';
 
@@ -30,6 +32,15 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email('Valid email is required'),
   password: z.string().min(1, 'Password is required'),
+});
+
+const resetRequestSchema = z.object({
+  email: z.string().email('Valid email is required'),
+});
+
+const resetConfirmSchema = z.object({
+  token: z.string().min(1, 'Token is required'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 app.use(express.json());
@@ -107,6 +118,36 @@ app.get('/auth/me', auth, async (req, res, next) => {
     const user = await findUserById(req.user.userId);
 
     res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/auth/logout', auth, (req, res) => {
+  res.status(200).json({ message: 'Успішний вихід' });
+});
+
+app.post('/auth/reset/request', async (req, res, next) => {
+  try {
+    const { email } = resetRequestSchema.parse(req.body);
+    const resetToken = await requestPasswordReset(email);
+
+    res.json({
+      message: 'Якщо email існує, ми надіслали інструкцію для відновлення.',
+      resetToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/auth/reset/confirm', async (req, res, next) => {
+  try {
+    const { token, newPassword } = resetConfirmSchema.parse(req.body);
+
+    await resetPassword(token, newPassword);
+
+    res.json({ message: 'Пароль змінено' });
   } catch (error) {
     next(error);
   }

@@ -98,3 +98,39 @@ export const findUserById = async (id) => {
 
   return publicUser(user);
 };
+
+export const requestPasswordReset = async (email) => {
+  const normalizedEmail = email.toLowerCase();
+  const user = await User.findOne({ where: { email: normalizedEmail } });
+
+  if (!user) {
+    return null;
+  }
+
+  const resetToken = uuidv4();
+
+  user.resetToken = resetToken;
+  user.resetTokenExpiresAt = new Date(Date.now() + 3600000);
+  await user.save();
+
+  return resetToken;
+};
+
+export const resetPassword = async (token, newPassword) => {
+  const user = await User.findOne({ where: { resetToken: token } });
+
+  if (
+    !user ||
+    !user.resetTokenExpiresAt ||
+    user.resetTokenExpiresAt.getTime() < Date.now()
+  ) {
+    throw badRequest('Invalid or expired reset token');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  user.passwordHash = passwordHash;
+  user.resetToken = null;
+  user.resetTokenExpiresAt = null;
+  await user.save();
+};
