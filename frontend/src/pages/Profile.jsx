@@ -8,7 +8,7 @@ import { authClient } from '../services/authClient.js';
 import { isPasswordStrong } from '../utils/password.js';
 
 export default function Profile() {
-  const { user, updateProfile, token } = useAuth();
+  const { user, updateProfile, token, setUser } = useAuth();
   const [name, setName] = useState(user?.name ?? '');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -77,6 +77,7 @@ export default function Profile() {
         token,
       );
       setEmailStatus(res.message ?? 'Email змінено.');
+      setUser(res.user ?? user);
       setEmailForm({ password: '', newEmail: '', confirm: '' });
     } catch (e) {
       setEmailError(e.message || 'Не вдалося змінити email.');

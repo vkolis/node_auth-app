@@ -80,3 +80,14 @@ export const sendResetEmail = async ({ to, token }) => {
     `,
   });
 };
+
+export const sendEmailChangeNotice = async ({ to, newEmail }) => {
+  await sendMail({
+    to,
+    subject: 'Зміну email виконано',
+    html: `
+      <p>Ваш email для входу було змінено на: <strong>${newEmail}</strong></p>
+      <p>Якщо це були не ви, якнайшвидше змініть пароль і зверніться в підтримку.</p>
+    `,
+  });
+};

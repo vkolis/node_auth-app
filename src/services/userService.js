@@ -173,3 +173,34 @@ export const updateProfile = async ({ userId, name }) => {
 
   return publicUser(user);
 };
+
+export const updateEmail = async ({ userId, password, email }) => {
+  const normalizedEmail = email.toLowerCase();
+  const user = await User.findByPk(userId);
+
+  if (!user) {
+    const error = new Error('User not found');
+
+    error.status = 404;
+    throw error;
+  }
+
+  const isValid = await bcrypt.compare(password, user.passwordHash);
+
+  if (!isValid) {
+    throw badRequest('Password does not match');
+  }
+
+  const emailTaken = await User.findOne({
+    where: { email: normalizedEmail },
+  });
+
+  if (emailTaken && emailTaken.id !== user.id) {
+    throw badRequest('Email already in use');
+  }
+
+  user.email = normalizedEmail;
+  await user.save();
+
+  return publicUser(user);
+};

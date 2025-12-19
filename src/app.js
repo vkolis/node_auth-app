@@ -13,16 +13,19 @@ import {
   registerUser,
   requestPasswordReset,
   resetPassword,
+  updateEmail,
   updateProfile,
 } from './services/userService.js';
 import { auth } from './middlewares/auth.js';
 import {
   sendActivationEmail,
+  sendEmailChangeNotice,
   sendResetEmail,
 } from './services/emailService.js';
 import {
   activateSchema,
   changePasswordSchema,
+  changeEmailSchema,
   changeProfileSchema,
   loginSchema,
   registerSchema,
@@ -166,6 +169,26 @@ app.patch('/auth/profile', auth, async (req, res, next) => {
     const user = await updateProfile({ userId: req.user.userId, name });
 
     res.json({ message: 'Профіль оновлено', user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/auth/email', auth, async (req, res, next) => {
+  try {
+    const { password, newEmail } = changeEmailSchema.parse(req.body);
+
+    const oldEmail = (await findUserById(req.user.userId)).email;
+
+    await sendEmailChangeNotice({ to: oldEmail, newEmail });
+
+    const user = await updateEmail({
+      userId: req.user.userId,
+      password,
+      email: newEmail,
+    });
+
+    res.json({ message: 'Email змінено. Ми повідомили стару адресу.', user });
   } catch (error) {
     next(error);
   }

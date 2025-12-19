@@ -100,6 +100,7 @@ export function AuthProvider({ children }) {
       activate,
       logout,
       updateProfile,
+      setUser,
     }),
     [user, token, isLoading, bootstrapping],
   );

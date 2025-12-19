@@ -32,3 +32,8 @@ export const changePasswordSchema = z.object({
 export const changeProfileSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
 });
+
+export const changeEmailSchema = z.object({
+  password: z.string().min(1, 'Password is required'),
+  newEmail: z.string().email('Valid email is required'),
+});
