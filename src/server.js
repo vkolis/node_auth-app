@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { app } from './app.js';
 import sequelize from './config/database.js';
+import { verifyEmailTransport } from './services/emailService.js';
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ async function start() {
     // eslint-disable-next-line no-console
     console.log('DB connected');
     await sequelize.sync();
+    await verifyEmailTransport();
 
     app.listen(PORT, () => {
       // eslint-disable-next-line no-console

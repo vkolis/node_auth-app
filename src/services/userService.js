@@ -39,7 +39,10 @@ export const registerUser = async ({ name, email, password }) => {
     active: false,
   });
 
-  return publicUser(newUser);
+  return {
+    user: publicUser(newUser),
+    activationToken,
+  };
 };
 
 export const activateUser = async (token) => {
@@ -113,7 +116,7 @@ export const requestPasswordReset = async (email) => {
   user.resetTokenExpiresAt = new Date(Date.now() + 3600000);
   await user.save();
 
-  return resetToken;
+  return { resetToken, user: publicUser(user) };
 };
 
 export const resetPassword = async (token, newPassword) => {
@@ -132,5 +135,25 @@ export const resetPassword = async (token, newPassword) => {
   user.passwordHash = passwordHash;
   user.resetToken = null;
   user.resetTokenExpiresAt = null;
+  await user.save();
+};
+
+export const changePassword = async ({ userId, oldPassword, newPassword }) => {
+  const user = await User.findByPk(userId);
+
+  if (!user) {
+    const error = new Error('User not found');
+
+    error.status = 404;
+    throw error;
+  }
+
+  const isValid = await bcrypt.compare(oldPassword, user.passwordHash);
+
+  if (!isValid) {
+    throw badRequest('Старий пароль невірний');
+  }
+
+  user.passwordHash = await bcrypt.hash(newPassword, 10);
   await user.save();
 };

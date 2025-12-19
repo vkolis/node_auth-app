@@ -8,6 +8,7 @@ import { notFound } from './middlewares/notFound.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import {
   activateUser,
+  changePassword,
   findUserById,
   loginUser,
   registerUser,
@@ -15,6 +16,10 @@ import {
   resetPassword,
 } from './services/userService.js';
 import { auth } from './middlewares/auth.js';
+import {
+  sendActivationEmail,
+  sendResetEmail,
+} from './services/emailService.js';
 
 dotenv.config();
 export const app = express();
@@ -43,6 +48,11 @@ const resetConfirmSchema = z.object({
   newPassword: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Old password is required'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
 app.use(express.json());
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(cookieParser());
@@ -55,7 +65,9 @@ app.post('/auth/register', async (req, res, next) => {
   try {
     const { name, email, password } = registerSchema.parse(req.body);
 
-    await registerUser({ name, email, password });
+    const { activationToken } = await registerUser({ name, email, password });
+
+    await sendActivationEmail({ to: email, token: activationToken });
 
     res.status(201).json({
       message: 'Ми надіслали лист для активації. Перевірте пошту.',
@@ -130,11 +142,14 @@ app.post('/auth/logout', auth, (req, res) => {
 app.post('/auth/reset/request', async (req, res, next) => {
   try {
     const { email } = resetRequestSchema.parse(req.body);
-    const resetToken = await requestPasswordReset(email);
+    const result = await requestPasswordReset(email);
+
+    if (result?.resetToken) {
+      await sendResetEmail({ to: email, token: result.resetToken });
+    }
 
     res.json({
       message: 'Якщо email існує, ми надіслали інструкцію для відновлення.',
-      resetToken,
     });
   } catch (error) {
     next(error);
@@ -147,6 +162,17 @@ app.post('/auth/reset/confirm', async (req, res, next) => {
 
     await resetPassword(token, newPassword);
 
+    res.json({ message: 'Пароль змінено' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/auth/password', auth, async (req, res, next) => {
+  try {
+    const { oldPassword, newPassword } = changePasswordSchema.parse(req.body);
+
+    await changePassword({ userId: req.user.userId, oldPassword, newPassword });
     res.json({ message: 'Пароль змінено' });
   } catch (error) {
     next(error);

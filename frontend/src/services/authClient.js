@@ -209,10 +209,17 @@ async function updateProfile(payload, token) {
 
 async function changePassword({ oldPassword, newPassword }, token) {
   if (!useMock) {
-    const { data } = await api.post('/auth/password', {
-      oldPassword,
-      newPassword,
-    });
+    const { data } = await api.post(
+      '/auth/password',
+      { oldPassword, newPassword },
+      {
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      },
+    );
 
     return data;
   }
