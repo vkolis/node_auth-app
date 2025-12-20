@@ -1,9 +1,9 @@
-import jwt from 'jsonwebtoken';
 import {
   sendActivationEmail,
   sendEmailChangeNotice,
   sendResetEmail,
-} from '../services/emailService';
+} from '../services/emailService.js';
+import { jwtService } from '../services/jwt.service.js';
 import {
   activateUser,
   changePassword,
@@ -14,7 +14,7 @@ import {
   resetPassword,
   updateEmail,
   updateProfile,
-} from '../services/userService';
+} from '../services/userService.js';
 import {
   activateSchema,
   changeEmailSchema,
@@ -24,7 +24,15 @@ import {
   registerSchema,
   resetConfirmSchema,
   resetRequestSchema,
-} from '../zod/zodSchemas';
+} from '../zod/zodSchemas.js';
+
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/auth/refresh',
+};
 
 const register = async (req, res, next) => {
   try {
@@ -47,9 +55,7 @@ const activate = async (req, res, next) => {
     const { token } = activateSchema.parse(req.body);
     const user = await activateUser(token);
 
-    const authToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    const authToken = jwtService.sign(user.id);
 
     res.json({
       message: 'Акаунт активовано',
@@ -74,16 +80,15 @@ const login = async (req, res, next) => {
       });
     }
 
-    const authToken = jwt.sign(
-      { userId: result.user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' },
-    );
+    const accessToken = jwtService.sign(result.user.id);
+    const refreshToken = jwtService.signRefresh(result.user.id);
+
+    res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
     res.json({
       message: 'Успішний вхід',
       user: result.user,
-      token: authToken,
+      accessToken,
     });
   } catch (error) {
     next(error);
@@ -101,6 +106,8 @@ const me = async (req, res, next) => {
 };
 
 const logout = (req, res) => {
+  res.clearCookie('refreshToken', refreshCookieOptions);
+
   res.status(200).json({ message: 'Успішний вихід' });
 };
 
@@ -176,6 +183,25 @@ const userEmail = async (req, res, next) => {
   }
 };
 
+const refresh = async (req, res, next) => {
+  try {
+    const payload = jwtService.verifyRefresh(req.cookies.refreshToken);
+
+    if (!payload?.userId) {
+      res.clearCookie('refreshToken', refreshCookieOptions);
+
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const accessToken = jwtService.sign(payload.userId);
+
+    res.json({ accessToken });
+  } catch (error) {
+    res.clearCookie('refreshToken', refreshCookieOptions);
+    next(error);
+  }
+};
+
 export const authController = {
   register,
   activate,
@@ -187,4 +213,5 @@ export const authController = {
   userPassword,
   profile,
   userEmail,
+  refresh,
 };

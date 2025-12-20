@@ -15,7 +15,11 @@ export const auth = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded;
+    if (!decoded?.userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    req.user = { userId: decoded.userId };
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Unauthorized' });
